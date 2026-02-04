@@ -22,48 +22,57 @@ muI = 0.05  #degradation of I
 #R2 = np.random.uniform(0,1,steps+1)
 
 #initial conditions
-A0 = 3
-I0 = 3
+A0 = 10
+I0 = 10
 
 #creating the grid
-t = np.zeros(steps+1)
-rxn = np.zeros((length, 2, steps+1)) #3D array containing concentrations of A and I in each compartment at each timestep
-
+time = np.zeros(steps+1)
+concA = np.zeros((length, steps+1))
+concI = np.zeros((length, steps+1))
 
 ###  PART 1: Checking for Pre-Diffusion Stability ###
 
 #set initial conditions
-rxn[:,0,0] = A0
-rxn[:,1,0] = I0
+concA[:, 0] = A0
+concI[:, 0] = I0
 
-for t in range(steps+1):
-    for box in range(length):
-        rT = k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA + pI + muA + muI #rate total, normalisation factor
-        Rand1 = np.random.uniform(0,1)
-        Rand2 = np.random.uniform(0,1)
+for step in range(1, steps+1):
 
-        if 0 < Rand1 <= k1*rxn[box,0,t] / rT: #self activation
-            rxn[box,0,t] += 1
+    #update concentrations
+    concA[:, step] = concA[:, step-1] 
+    concI[:, step] = concI[:, step-1]
 
-        elif k1*rxn[box,0,t] / rT < Rand1 <= (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t]) / rT and rxn[box,0,t]>0: #inhibition
-            rxn[box,0,t] -= 1
-
-        elif (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t]) / rT < Rand1 <= (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t]) / rT: #activation
-            rxn[box,1,t] += 1
-
-        elif (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t]) / rT < Rand1 <= (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t]) / rT and rxn[box,1,t]>0: #self inhibition
-            rxn[box,1,t] -= 1
-
-        elif (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t]) / rT < Rand1 <= (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA) / rT: #basal production of activator
-            rxn[box,0,t] += 1
+    for box in range(1, length): #iterate through each compartment in the timestep
+        rT = k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA + pI + muA + muI #rate total, normalisation factor
+        Rand1 = np.random.uniform(0,1) #random number for reaction selection
+        Rand2 = np.random.uniform(0,1) #random number for time increment
         
-        elif (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA) / rT < Rand1 <= (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA +pI) / rT: #basal production of activator
-            rxn[box,1,t] += 1
+        if 0 < Rand1 <= (k1*concA[box,step]) / rT: #self activation
+            concA[box, step] += 1
 
-        elif (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA + pI) / rT < Rand1 <= (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA + pI + muA) / rT and rxn[box,0,t]>0: #basal production of activator
-            rxn[box,0,t] -= 1
+        elif (k1*concA[box,step]) / rT < Rand1 <= (k1*concA[box,step] + k2*concI[box, step]*concA[box, step]) / rT and concA[box, step]>0: #inhibition
+            concA[box, step] -= 1
+
+        elif (k1*concA[box, step] + k2*concI[box, step]*concA[box, step]) / rT < Rand1 <= (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step]) / rT: #activation
+            concI[box, step] += 1
+
+        elif (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step]) / rT < Rand1 <= (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step]) / rT and concI[box, step]>0: #self inhibition
+            concI[box, step] -= 1
+
+        elif (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step]) / rT < Rand1 <= (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA) / rT: #basal production of activator
+            concA[box, step] += 1
         
-        elif (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA + pI + muA) / rT < Rand1 <= (k1*rxn[box,0,t] + k2*rxn[box,1,t]*rxn[box,0,t] + k3*rxn[box,0,t]*rxn[box,1,t] + k4*rxn[box,1,t] + pA + pI + muA + muI) / rT and rxn[box,1,t]>0: #basal production of inhibitor
-            rxn[box,1,t] -= 1
+        elif (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA) / rT < Rand1 <= (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA +pI) / rT: #basal production of inhibitor
+            concI[box, step] += 1
 
-print(rxn)
+        elif (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA + pI) / rT < Rand1 <= (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA + pI + muA) / rT and concA[box, step]>0: #basal production of activator
+            concA[box, step] -= 1
+        
+        elif (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA + pI + muA) / rT < Rand1 <= (k1*concA[box, step] + k2*concI[box, step]*concA[box, step] + k3*concA[box, step]*concI[box, step] + k4*concI[box, step] + pA + pI + muA + muI) / rT and concI[box, step]>0: #basal production of inhibitor
+            concI[box, step] -= 1
+
+    time[step] = time[step-1] - np.log(Rand2)/rT
+
+print(time)
+
+plt.plot(concA)
