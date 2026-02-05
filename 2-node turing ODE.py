@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 steps = 1000 #number of time steps per trajectory
 length = 100 #size of the grid
@@ -74,5 +75,10 @@ for step in range(1, steps+1):
     time[step] = time[step-1] - np.log(Rand2)/rT
 
 print(time)
+print(concA)
 
-plt.plot(concA)
+#plt.plot(concA)
+sns.heatmap(concA)
+plt.title("Pre-Diffusion")
+plt.xlabel("Time (s)")
+plt.xlabel("Compartment")
